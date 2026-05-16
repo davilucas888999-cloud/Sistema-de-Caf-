@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Colheita de Café</title>
+    
+    <!-- CSS Personalizado -->
+    <link rel="stylesheet" href="style.css">
+    
+    <!-- FontAwesome para Ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Chart.js para Gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- jsPDF e AutoTable para exportação de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+
+    <!-- Cabeçalho Principal -->
+    <header>
+        <div class="logo">
+            <i class="fa-solid fa-mug-hot"></i>
+            <h1>Sistema AgroCafé</h1>
+        </div>
+        <div class="data-atual" id="data-header"></div>
+    </header>
+
+    <main class="container">
+        
+        <!-- Dashboard de Histórico Geral -->
+        <section class="dashboard fade-in">
+            <div class="card">
+                <i class="fa-solid fa-sack-dollar icone-card"></i>
+                <div>
+                    <h3>Lucro Geral (Acumulado)</h3>
+                    <p id="dash-lucro">R$ 0,00</p>
+                </div>
+            </div>
+            <div class="card">
+                <i class="fa-solid fa-seedling icone-card"></i>
+                <div>
+                    <h3>Sacos Colhidos (Geral)</h3>
+                    <p id="dash-sacos">0</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Bloco Superior: Gerenciamento de Pessoas e Fechamento Semanal -->
+        <div class="grid-2 fade-in">
+            <!-- Cadastro de Trabalhadores -->
+            <section class="card form-section">
+                <h2><i class="fa-solid fa-user-plus"></i> Equipe (Trabalhadores)</h2>
+                <div class="input-group-btn">
+                    <input type="text" id="novo-trabalhador" placeholder="Nome do trabalhador...">
+                    <button class="btn-primary btn-inline" id="btn-add-trabalhador"><i class="fa-solid fa-plus"></i></button>
+                </div>
+                <ul id="lista-trabalhadores-gerenciamento" class="lista-simples">
+                    <!-- Gerado por JS -->
+                </ul>
+            </section>
+
+            <!-- Calculadora de Pagamento Semanal/Período -->
+            <section class="card fechamento-section">
+                <h2><i class="fa-solid fa-money-bill-wave"></i> Fechamento de Pagamentos</h2>
+                <p class="sub-instrucao">Selecione a semana ou período de pagamento para calcular os totais por pessoa.</p>
+                <div class="grid-2-inputs">
+                    <div class="input-group">
+                        <label for="fechamento-inicio">Data de Início</label>
+                        <input type="date" id="fechamento-inicio">
+                    </div>
+                    <div class="input-group">
+                        <label for="fechamento-fim">Data de Fim</label>
+                        <input type="date" id="fechamento-fim">
+                    </div>
+                </div>
+                <div class="resultados-fechamento" id="resultados-fechamento">
+                    <p class="mensagem-vazio-interna">Defina o intervalo de datas para calcular.</p>
+                </div>
+            </section>
+        </div>
+
+        <!-- Bloco Central: Lançamento Diário e Gráfico descritivo -->
+        <div class="grid-2 fade-in">
+            <!-- Formulário de Registro Diário -->
+            <section class="card form-section">
+                <h2><i class="fa-solid fa-plus-circle"></i> Lançar Colheita Diária</h2>
+                <form id="form-registro">
+                    <input type="hidden" id="registro-id">
+                    
+                    <div class="input-group">
+                        <label for="data">Data da Colheita</label>
+                        <input type="date" id="data" required>
+                    </div>
+
+                    <div class="grid-2-inputs">
+                        <div class="input-group">
+                            <label for="valor-saco">Valor do Saco (R$)</label>
+                            <input type="number" id="valor-saco" step="0.01" min="0" required>
+                        </div>
+                        <div class="input-group">
+                            <label for="qtd-sacos">Qtd. de Sacos</label>
+                            <input type="number" id="qtd-sacos" step="0.5" min="0" required>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Trabalhadores Ativos no Dia</label>
+                        <div id="container-checkboxes" class="checkbox-group">
+                            <!-- Injetado por JS -->
+                        </div>
+                    </div>
+
+                    <div class="totais-calculados">
+                        <p>Total Bruto do Dia: <strong id="calc-total">R$ 0,00</strong></p>
+                        <p>Dividido para <span id="calc-qtd-pessoas">0</span> pessoa(s): <strong id="calc-pessoa" class="destaque-azul">R$ 0,00</strong></p>
+                    </div>
+
+                    <button type="submit" class="btn-primary" id="btn-salvar">
+                        <i class="fa-solid fa-save"></i> Salvar Lançamento
+                    </button>
+                    <button type="button" class="btn-secondary hidden" id="btn-cancelar">Cancelar Edição</button>
+                </form>
+            </section>
+
+            <!-- Gráfico de Produção -->
+            <section class="card chart-section">
+                <h2><i class="fa-solid fa-chart-bar"></i> Rendimento por Dia Colhido</h2>
+                <div class="canvas-container">
+                    <canvas id="graficoGanhos"></canvas>
+                </div>
+            </section>
+        </div>
+
+        <!-- Barra de Filtros e Exportações -->
+        <section class="card tools-section fade-in">
+            <div class="filtros">
+                <input type="text" id="busca" placeholder="Buscar por trabalhador ou data..." class="input-busca">
+                <input type="month" id="filtro-mes">
+                <button class="btn-icon" id="btn-limpar-filtros" title="Limpar Filtros"><i class="fa-solid fa-filter-circle-xmark"></i></button>
+            </div>
+            <div class="exportacoes">
+                <button class="btn-pdf" onclick="exportarPDF()"><i class="fa-solid fa-file-pdf"></i> Exportar Tabela Filtrada</button>
+            </div>
+        </section>
+
+        <!-- Listagem e Tabela Histórica -->
+        <section class="tabela-section fade-in">
+            <div class="table-responsive">
+                <table id="tabela-registros">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Trabalhadores do Dia</th>
+                            <th>Valor do Saco</th>
+                            <th>Sacos</th>
+                            <th>Total do Dia</th>
+                            <th>Valor por Pessoa</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbody-registros">
+                        <!-- Injetado por JS -->
+                    </tbody>
+                    <tfoot>
+                        <tr>
+                            <td colspan="3"><strong>Totais do Filtro Aplicado</strong></td>
+                            <td id="rodape-sacos"><strong>0</strong></td>
+                            <td id="rodape-total"><strong>R$ 0,00</strong></td>
+                            <td colspan="2"></td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+            <div id="mensagem-vazio" class="mensagem-vazio hidden">
+                <i class="fa-solid fa-folder-open"></i>
+                <p>Nenhum registro encontrado para estes filtros.</p>
+            </div>
+        </section>
+    </main>
+
+    <!-- Script de Execução -->
+    <script src="script.js"></script>
+</body>
+</html>
